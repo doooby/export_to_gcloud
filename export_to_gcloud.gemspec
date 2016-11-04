@@ -15,5 +15,6 @@ Gem::Specification.new do |s|
 
   # s.license       = 'MIT'
 
-  # s.add_dependency ''
+  s.add_dependency 'gcloud'
+  s.add_dependency 'httpclient'
 end
