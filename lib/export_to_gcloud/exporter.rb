@@ -54,7 +54,30 @@ module ExportToGcloud
       end.compact
     end
 
+    def bq_table
+      unless defined? @bq_table
+        @bq_table = @project.dataset.table @definition.name
+      end
+      @bq_table
+    end
 
+    def recreate_bq_table!
+      bq_table.delete if bq_table
+      @bq_table = @project.dataset.create_table @definition.name, &@definition.bq_schema
+    end
+
+    def start_load_job gcloud_file, **_load_settings
+      load_settings = {
+          format: 'csv',
+          quote: '"',
+          delimiter: ';',
+          create: 'never',
+          write: 'append',
+          max_bad_records: 0
+      }
+      load_settings.merge! _load_settings unless _load_settings.empty?
+      bq_table.load gcloud_file, **load_settings
+    end
 
     class Definition < OpenStruct
 
