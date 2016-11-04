@@ -4,161 +4,110 @@ module ExportToGcloud
 
   class Exporter
 
-    STORAGE_KEY_PREFIX = 'yeti_export'
-
-    attr_reader :local_name
-    attr_writer :bq_schema_builder, :sql_query, :table_data
-
-    def initialize(local_name, quote_string_field=true)
-      @local_name = local_name
-      @quote_string_field = quote_string_field
+    def initialize definition, project
+      @definition = definition
+      @project = project
+      @parts = []
     end
 
-    def file_names(label)
-      file = "#{local_name}_#{label}.csv"
-      return "#{STORAGE_KEY_PREFIX}/#{file}", file
+    def local_file_path label
+      @project.local_tmp_path.join "#{@definition.name}_#{label}.csv"
     end
 
-    def bq_schema_builder
-      @bq_schema_builder || raise("Undefined BQ table bq_schema_builder!")
+    def storage_file_path label
+      prefix = @definition.storage_prefix || @project.storage_prefix
+      "#{prefix}#{label}"
     end
 
-    ### partition for bigger tables
-
-    def add_source_part(*part_data, label:)
-      @parts ||= []
-      part_data.unshift label.to_s || (@parts.length+1).to_s
-      @parts << part_data
+    def add_data_part *args, label:nil
+      args.unshift(label ? label.to_s : (@parts.length+1).to_s)
+      @parts << args
     end
 
-    def upload_data_start_importing
-      @parts ||= [['all']]
-      @parts.map do |label, *part_data|
-        storage_name, name = file_names label
-        file_path = Yeti::Gcloud.tmp_directory.join name
+    def process_all_parts!
+      add_data_part label: 'all' if @parts.empty?
 
-        build_source_part! file_path, *part_data
-        upload_file! file_path, storage_name
+      @parts.map do |label, *part_args|
+        file = local_file_path label
+        storage_name = storage_file_path label
+
+        create_data_file! file, *part_args
+        gcloud_file = upload_file! file, storage_name
         start_load_job gcloud_file
       end
     end
 
-    def get_storage_files
-      @parts.map do |label, *_|
-        storage_name, _ = file_names label
-        Yeti::Gcloud.storage_bucket.file storage_name
-      end.compact
+    def create_data_file! file_path, *part_data
+      File.write file_path, @definition.get_data(*part_data)
     end
 
-    ### exporting part of process
-
-    def build_source_part! file_path, *part_data
-      if @sql_query
-        copy_from_pg_to_file! file_path.to_path, @sql_query, *part_data
-
-      elsif @table_data
-        put_data_to_file! file_path.to_path, @table_data, *part_data
-
-      end
-    end
-
-    def upload_file!(file_path, storage_name)
-      file_path = compress_source_file! file_path
-      gcloud_file = Yeti::Gcloud.storage_bucket.create_file file_path, storage_name, chunk_size: 2*1024*1024
-      file_path.delete
+    def upload_file!(file, storage_name)
+      file = compress_file! file
+      gcloud_file = @project.bucket.create_file file, storage_name, chunk_size: 2**21 # 2MB
+      file.delete
       gcloud_file
     end
 
-    def copy_from_pg_to_file! file, sql, *part_data
-      sql = case sql
-        when Proc then sql.call *part_data
-        when String then sql
-        else raise "SQL query to fetch the data is not defined (table: #{local_name})!"
-      end
-
-      schema = ::Gcloud::Bigquery::Table::Schema.new nil
-      bq_schema_builder.call schema
-      string_fileds_names = schema.fields.select{|f| f['type']=='STRING'}.map{|f| f['name']}
-
-      force_quote = if !@quote_string_field || string_fileds_names.empty?
-        ''
-      else
-        ", FORCE_QUOTE (#{string_fileds_names.join ', '})"
-      end
-      sql = "COPY (#{sql}) TO '#{file}' WITH (FORMAT CSV, DELIMITER ';', QUOTE '\"'#{force_quote});"
-
-      ActiveRecord::Base.connection.execute sql
+    def get_storage_files
+      @parts.map do |label, *_|
+        storage_name = storage_file_path label
+        @project.bucket.file storage_name
+      end.compact
     end
 
-    def put_data_to_file! file, data, *part_data
-      data = data.call *part_data if Proc === data
 
-      csv_data = CSV.generate col_sep: ';', force_quotes: true do |csv|
-        data.each{|row| csv << row}
+
+    class Definition < OpenStruct
+
+      def initialize exporter_type, def_attrs
+        self.type = exporter_type
+        super def_attrs
       end
 
-      File.write file, csv_data
+      def create_exporter project
+        type.new self, project
+      end
+
+      def validate!
+        (String === name && !name.empty?)   || raise('`name` must be defined!')
+        Proc === bq_schema                  || raise('`bq_schema` must be defined as a Proc!')
+        data                                || raise('`data` must be defined!')
+        type.validate_definition! if type.respond_to? 'validate_definition!'
+      end
+
+      def get_data *args
+        Proc === data ? data[*args] : data
+      end
+
     end
 
-    def compress_source_file!(original_file)
+
+
+    def self.define **kwargs
+      last_definition = ::ExportToGcloud::Exporter::Definition.new self, kwargs
+      yield last_definition
+      last_definition.validate!
+      ::ExportToGcloud::Exporter.set_last_definition last_definition
+    end
+
+    def self.get_last_definition
+      definition = @last_definition
+      @last_definition = nil
+      definition
+    end
+
+    private
+
+    def compress_file!(original_file)
       err = %x(pigz -f9 #{original_file.to_path} 2>&1)
       compressed_file = Pathname.new "#{original_file.to_path}.gz"
-      raise "Compression failed: #{err}" unless compressed_file.exist?
+      raise "Compression of #{original_file.to_path} failed: #{err}" unless compressed_file.exist?
       original_file.delete if original_file.exist?
       compressed_file
     end
 
-    ### import to BQ part
-
-    def connect_bq_table(dataset, table_name)
-      @bq_dataset = dataset
-      @bq_table_name = table_name
-      @bq_table = nil
-    end
-
-    def bq_table
-      raise 'conect to BQ table first (using #connect_bq_table)' unless @bq_dataset && @bq_table_name
-      @bq_table ||= @bq_dataset.table(@bq_table_name)
-    end
-
-    def recreate_table!
-      bq_table.try &:delete
-      @bq_table = @bq_dataset.create_table @bq_table_name, &bq_schema_builder
-    end
-
-    def start_load_job(gcloud_file, **_load_settings)
-      load_settings = {
-          format: 'csv',
-          quote: '"',
-          delimiter: ';',
-          create: 'never',
-          write: 'append',
-          max_bad_records: 0
-      }
-      load_settings.merge! _load_settings unless _load_settings.empty?
-      bq_table.load gcloud_file, **load_settings
-    end
-
-    ############### CLASS methods ###############
-
-    class << self
-
-      def load_source(table_name)
-        file = Rails.root.join(*%W(db gcloud_export_definitions #{table_name}.rb))
-        load file
-        sources_definitions[table_name] || raise("File #{file} must define source table #{table_name}!")
-      end
-
-      def define(table_name)
-        source = new table_name
-        yield source
-        sources_definitions[source.local_name.to_s] = source
-      end
-
-      def sources_definitions
-        @definitions ||= {}
-      end
-
+    def self.set_last_definition definition
+      @last_definition = definition
     end
 
   end

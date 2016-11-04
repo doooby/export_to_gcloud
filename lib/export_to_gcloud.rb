@@ -9,6 +9,8 @@ module ExportToGcloud
     return if @deps_loaded
 
     require 'gcloud'
+    require 'pathname'
+    require 'ostruct'
 
     # large files uploading
     require 'httpclient'
