@@ -9,8 +9,10 @@ module ExportToGcloud
     return if @deps_loaded
 
     require 'gcloud'
+    require 'gcloud/bigquery'
     require 'pathname'
     require 'ostruct'
+    require 'csv'
 
     # large files uploading
     require 'httpclient'

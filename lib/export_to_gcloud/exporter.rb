@@ -1,4 +1,3 @@
-require 'gcloud/bigquery'
 
 module ExportToGcloud
 
@@ -16,7 +15,7 @@ module ExportToGcloud
 
     def storage_file_path label
       prefix = @definition.storage_prefix || @project.storage_prefix
-      "#{prefix}#{label}"
+      "#{prefix}#{@definition.name}_#{label}.csv"
     end
 
     def add_data_part *args, label:nil
@@ -37,8 +36,8 @@ module ExportToGcloud
       end
     end
 
-    def create_data_file! file_path, *part_data
-      File.write file_path, @definition.get_data(*part_data)
+    def create_data_file! file, *part_data
+      File.write file.to_path, @definition.get_data(*part_data)
     end
 
     def upload_file!(file, storage_name)
@@ -72,7 +71,7 @@ module ExportToGcloud
         (String === name && !name.empty?)   || raise('`name` must be defined!')
         Proc === bq_schema                  || raise('`bq_schema` must be defined as a Proc!')
         data                                || raise('`data` must be defined!')
-        type.validate_definition! if type.respond_to? 'validate_definition!'
+        type.validate_definition! self if type.respond_to? 'validate_definition!'
       end
 
       def get_data *args
