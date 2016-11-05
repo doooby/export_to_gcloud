@@ -23,8 +23,10 @@ module ExportToGcloud
       @parts << args
     end
 
-    def process_all_parts!
+    def process_all_parts! recreate_table=true
       add_data_part label: 'all' if @parts.empty?
+
+      recreate_bq_table! if recreate_table
 
       @parts.map do |label, *part_args|
         file = local_file_path label
@@ -56,14 +58,14 @@ module ExportToGcloud
 
     def bq_table
       unless defined? @bq_table
-        @bq_table = @project.dataset.table @definition.name
+        @bq_table = @project.dataset.table @definition.get_bq_table_name
       end
       @bq_table
     end
 
     def recreate_bq_table!
       bq_table.delete if bq_table
-      @bq_table = @project.dataset.create_table @definition.name, &@definition.bq_schema
+      @bq_table = @project.dataset.create_table @definition.get_bq_table_name, &@definition.bq_schema
     end
 
     def start_load_job gcloud_file, **_load_settings
@@ -82,8 +84,7 @@ module ExportToGcloud
     class Definition < OpenStruct
 
       def initialize exporter_type, def_attrs
-        self.type = exporter_type
-        super def_attrs
+        super def_attrs.merge!(type: exporter_type)
       end
 
       def create_exporter project
@@ -101,13 +102,17 @@ module ExportToGcloud
         Proc === data ? data[*args] : data
       end
 
+      def get_bq_table_name
+        bq_table_name || name
+      end
+
     end
 
 
 
     def self.define **kwargs
       last_definition = ::ExportToGcloud::Exporter::Definition.new self, kwargs
-      yield last_definition
+      yield last_definition if block_given?
       last_definition.validate!
       ::ExportToGcloud::Exporter.set_last_definition last_definition
     end

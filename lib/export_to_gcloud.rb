@@ -25,6 +25,8 @@ module ExportToGcloud
     Faraday::Response.register_middleware gzip: Faraday::Response::Middleware
 
     require_relative 'export_to_gcloud/exporter'
+    require_relative 'export_to_gcloud/csv_exporter'
+    require_relative 'export_to_gcloud/pg_exporter'
 
     @deps_loaded = true
   end

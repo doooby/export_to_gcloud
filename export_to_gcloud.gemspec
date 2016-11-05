@@ -11,7 +11,7 @@ Gem::Specification.new do |s|
   s.authors     = ['Ondřej Želazko']
   s.email       = 'zelazk.o@email.cz'
 
-  s.files       = Dir[ %w[LICENSE lib/**/*.rb] ]
+  s.files       = Dir[ *%w[LICENSE lib/**/*.rb] ]
 
   # s.license       = 'MIT'
 

@@ -11,9 +11,9 @@ module ExportToGcloud
         :definition_finder
 
 
-    def initialize project_name, config_hash
+    def initialize project_name, config_file
       ::ExportToGcloud.require_dependencies
-      @client = ::Gcloud.new project_name, config_hash
+      @client = ::Gcloud.new project_name, config_file
     end
 
     def set_bucket name
@@ -59,21 +59,35 @@ module ExportToGcloud
       block.call failed unless failed.empty?
     end
 
-    def get_exporter identificator
-      identificator = identificator.to_s
+    def get_exporter name
+      name = name.to_s
 
       @definitions ||= {}
-      unless @definitions.has_key? identificator
-        file_path = definition_finder[identificator]
-        load file_path
-        @definitions[identificator] = ::ExportToGcloud::Exporter.get_last_definition ||
-            raise("File #{file_path} must define exporter for '#{identificator}'!")
+      unless @definitions.has_key? name
+        @definitions[name] = load_definition name
       end
 
-      definition = @definitions[identificator]
+      definition = @definitions[name]
       definition.create_exporter self
     end
+    
+    private
+    
+    def load_definition name
+      file_path = definition_finder[name]
+      load file_path
+      definition = ::ExportToGcloud::Exporter.get_last_definition
 
+      unless definition
+        raise("File #{file_path.to_s} must define exporter for '#{name}'!")
+      end
+
+      unless definition.name == name
+        raise "File #{file_path.to_s} defines '#{definition.name}' instead of '#{name}'"
+      end
+
+      definition
+    end
 
   end
 

@@ -6,7 +6,7 @@ module ExportToGcloud
     def create_data_file! file, *part_data
       data = @definition.get_data(*part_data)
 
-      csv_data = CSV.generate col_sep: ';', force_quotes: true do |csv|
+      csv_data = CSV.generate col_sep: ';', force_quotes: false do |csv|
         data.each{|row| csv << row}
       end
 
