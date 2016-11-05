@@ -3,26 +3,30 @@ module ExportToGcloud
 
   class Exporter
 
-    attr_accessor :options
+    attr_accessor :context
 
     def initialize definition
       @definition = definition
       @parts = []
+      case definition.parts
+        when Array then definition.parts.each{|label, *part_args| add_data_part *part_args, label: label}
+        when Proc  then definition.parts.call self
+      end
     end
 
-    def with_options options
-      former_options = self.options
-      self.options = options
+    def with_context context
+      former_context = self.context
+      self.context = context
       yield
-      self.options = former_options
+      self.context = former_context
     end
 
     def local_file_path label
-      options.dump_path.join "#{@definition.name}_#{label}.csv"
+      context.dump_path.join "#{@definition.name}_#{label}.csv"
     end
 
     def storage_file_path label
-      prefix = @definition.storage_prefix || options.storage_prefix
+      prefix = @definition.storage_prefix || context.storage_prefix
       "#{prefix}#{@definition.name}_#{label}.csv"
     end
 
@@ -52,7 +56,7 @@ module ExportToGcloud
 
     def upload_file!(file, storage_name)
       file = compress_file! file
-      gcloud_file = options.bucket.create_file file, storage_name, chunk_size: 2**21 # 2MB
+      gcloud_file = context.bucket.create_file file, storage_name, chunk_size: 2**21 # 2MB
       file.delete
       gcloud_file
     end
@@ -60,20 +64,20 @@ module ExportToGcloud
     def get_storage_files
       @parts.map do |label, *_|
         storage_name = storage_file_path label
-        options.bucket.file storage_name
+        context.bucket.file storage_name
       end.compact
     end
 
     def bq_table
       unless defined? @bq_table
-        @bq_table = options.dataset.table @definition.get_bq_table_name
+        @bq_table = context.dataset.table @definition.get_bq_table_name
       end
       @bq_table
     end
 
     def recreate_bq_table!
       bq_table.delete if bq_table
-      @bq_table = options.dataset.create_table @definition.get_bq_table_name, &@definition.bq_schema
+      @bq_table = context.dataset.create_table @definition.get_bq_table_name, &@definition.bq_schema
     end
 
     def start_load_job gcloud_file, **_load_settings
@@ -107,5 +111,5 @@ module ExportToGcloud
 
 end
 
-require_relative 'exporter/definition'
-require_relative 'exporter/options'
+require_relative '../exporter/definition'
+require_relative '../exporter/context'

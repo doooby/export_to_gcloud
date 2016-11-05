@@ -1,8 +1,8 @@
-class ExportToGcloud::Exporter::Options
+class ExportToGcloud::Exporter::Context
 
   attr_reader :client
 
-  private OPTIONS = %i[dump_path storage_prefix bucket dataset]
+  OPTIONS = %i[dump_path storage_prefix bucket dataset].freeze
 
   def initialize client, **opts
     @client = client
@@ -31,13 +31,13 @@ class ExportToGcloud::Exporter::Options
 
   def set_dataset dataset
     dataset = client.bigquery.dataset dataset if String === dataset
-    @bucket = dataset
+    @dataset = dataset
   end
 
   OPTIONS.each do |key|
     define_method key do
       value = instance_variable_get "@#{key}"
-      value || "Undefined value for #{key} in exporter options!"
+      value || raise("Undefined value for #{key} in exporter options!")
     end
   end
 

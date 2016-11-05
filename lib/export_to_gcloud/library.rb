@@ -55,8 +55,12 @@ module ExportToGcloud
     definition.create_exporter
   end
 
+  def self.create_context **opts
+    ::ExportToGcloud::Exporter::Context.new client, opts
+  end
+
 end
 
-require_relative 'export_to_gcloud/exporters/exporter'
-require_relative 'export_to_gcloud/exporters/csv_exporter'
-require_relative 'export_to_gcloud/exporters/pg_exporter'
+require_relative 'exporters/exporter'
+require_relative 'exporters/csv_exporter'
+require_relative 'exporters/pg_exporter'
