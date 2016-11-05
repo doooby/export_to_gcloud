@@ -17,7 +17,7 @@ module ExportToGcloud
     def with_context context
       former_context = self.context
       self.context = context
-      yield
+      yield self
       self.context = former_context
     end
 

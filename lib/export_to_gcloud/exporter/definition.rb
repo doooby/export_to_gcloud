@@ -25,14 +25,14 @@ class ExportToGcloud::Exporter::Definition < OpenStruct
 
   def self.set_last_definition klass, attrs={}, &block
     last_definition = new klass, attrs
-    block[last_definition] if block
+    block.call last_definition if block
 
     last_definition.validate!
     @last_definition = last_definition
   end
 
   def self.load_definition name, finder
-    file_path = finder[name]
+    file_path = finder.call name
     load file_path
     definition = @last_definition
     @last_definition = nil
