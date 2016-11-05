@@ -4,10 +4,6 @@ class ExportToGcloud::Exporter::Definition < OpenStruct
     super attrs.merge!(type: exporter_type)
   end
 
-  def create_exporter
-    type.new self
-  end
-
   def validate!
     (String === name && !name.empty?)   || raise('`name` must be defined!')
     Proc === bq_schema                  || raise('`bq_schema` must be defined as a Proc!')

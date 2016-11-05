@@ -43,7 +43,7 @@ module ExportToGcloud
     block.call failed unless failed.empty?
   end
 
-  def self.get_exporter name
+  def self.get_exporter name, context=nil
     name = name.to_s
 
     @definitions ||= {}
@@ -52,7 +52,7 @@ module ExportToGcloud
     end
 
     definition = @definitions[name]
-    definition.create_exporter
+    definition.type.new definition, context
   end
 
   def self.create_context **opts

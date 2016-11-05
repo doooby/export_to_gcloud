@@ -5,8 +5,10 @@ module ExportToGcloud
 
     attr_accessor :context
 
-    def initialize definition
+    def initialize definition, context=nil
       @definition = definition
+      @context = context
+
       @parts = []
       case definition.parts
         when Array then definition.parts.each{|label, *part_args| add_data_part *part_args, label: label}
