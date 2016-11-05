@@ -89,8 +89,8 @@ module ExportToGcloud
       bq_table.load gcloud_file, **load_settings
     end
 
-    def self.define **kwargs
-      ::ExportToGcloud::Exporter::Definition.new self, kwargs
+    def self.define **kwargs, &block
+      ::ExportToGcloud::Exporter::Definition.set_last_definition self, kwargs, &block
     end
 
     private

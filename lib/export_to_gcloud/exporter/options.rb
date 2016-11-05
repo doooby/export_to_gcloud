@@ -1,11 +1,11 @@
 class ExportToGcloud::Exporter::Options
 
-  attr_reader :project
+  attr_reader :client
 
   private OPTIONS = %i[dump_path storage_prefix bucket dataset]
 
-  def initialize project, **opts
-    @project = project
+  def initialize client, **opts
+    @client = client
     set opts
   end
 
@@ -25,12 +25,12 @@ class ExportToGcloud::Exporter::Options
   end
 
   def set_bucket bucket
-    bucket = project.storage.bucket bucket if String === bucket
+    bucket = client.storage.bucket bucket if String === bucket
     @bucket = bucket
   end
 
   def set_dataset dataset
-    dataset = project.bigquery.dataset dataset if String === dataset
+    dataset = client.bigquery.dataset dataset if String === dataset
     @bucket = dataset
   end
 

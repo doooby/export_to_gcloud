@@ -1,34 +1,14 @@
 require_relative 'export_to_gcloud/version'
-require_relative 'export_to_gcloud/project'
 
 module ExportToGcloud
 
-  # since the whole export is meant to be execute a some rake task (i.e. outside main app process)
-  # rather require dependencies on access then on app load
-  def self.require_dependencies
-    return if @deps_loaded
+  attr_reader :client
 
-    require 'gcloud'
-    require 'gcloud/bigquery'
-    require 'pathname'
-    require 'ostruct'
-    require 'csv'
+  def self.setup project_name, config_file, definitions_resolver:nil
+    require_relative 'export_to_gcloud/library'
 
-    # large files uploading
-    require 'httpclient'
-    Faraday.default_adapter = :httpclient
-
-    # monkeypatch :/ some issue in google-api
-    # see http://googlecloudplatform.github.io/gcloud-ruby/docs/master/Gcloud/Storage.html
-    #     -> A note about large uploads
-    require 'google/api_client'
-    Faraday::Response.register_middleware gzip: Faraday::Response::Middleware
-
-    require_relative 'export_to_gcloud/exporters/exporter'
-    require_relative 'export_to_gcloud/exporters/csv_exporter'
-    require_relative 'export_to_gcloud/exporters/pg_exporter'
-
-    @deps_loaded = true
+    self.definitions_resolver = definitions_resolver if definitions_resolver
+    @client = ::Gcloud.new project_name, config_file
   end
 
 end

@@ -23,17 +23,28 @@ class ExportToGcloud::Exporter::Definition < OpenStruct
     bq_table_name || name
   end
 
-  def self.set_last_definition klass, attrs
+  def self.set_last_definition klass, attrs={}, &block
     last_definition = new klass, attrs
-    yield last_definition if block_given?
+    block[last_definition] if block
 
     last_definition.validate!
     @last_definition = last_definition
   end
 
-  def self.get_last_definition
+  def self.load_definition name, finder
+    file_path = finder[name]
+    load file_path
     definition = @last_definition
     @last_definition = nil
+
+    unless definition
+      raise("File #{file_path.to_s} must define exporter for '#{name}'!")
+    end
+
+    unless definition.name == name
+      raise "File #{file_path.to_s} defines '#{definition.name}' instead of '#{name}'"
+    end
+
     definition
   end
 
