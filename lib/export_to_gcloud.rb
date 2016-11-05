@@ -24,9 +24,9 @@ module ExportToGcloud
     require 'google/api_client'
     Faraday::Response.register_middleware gzip: Faraday::Response::Middleware
 
-    require_relative 'export_to_gcloud/exporter'
-    require_relative 'export_to_gcloud/csv_exporter'
-    require_relative 'export_to_gcloud/pg_exporter'
+    require_relative 'export_to_gcloud/exporters/exporter'
+    require_relative 'export_to_gcloud/exporters/csv_exporter'
+    require_relative 'export_to_gcloud/exporters/pg_exporter'
 
     @deps_loaded = true
   end
