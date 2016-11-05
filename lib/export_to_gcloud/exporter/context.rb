@@ -43,7 +43,7 @@ class ExportToGcloud::Exporter::Context
   end
 
   def copy
-    self.class.new client, OPTIONS.inject({}){|k, h| h[k] = instance_variable_get "@#{k}"; h}
+    self.class.new client, OPTIONS.inject({}){|h, k| h[k] = instance_variable_get "@#{k}"; h}
   end
 
 end
