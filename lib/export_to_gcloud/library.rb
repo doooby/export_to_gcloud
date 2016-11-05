@@ -43,7 +43,7 @@ module ExportToGcloud
     block.call failed unless failed.empty?
   end
 
-  def self.get_exporter name, context=nil
+  def self.get_exporter name, context
     name = name.to_s
 
     @definitions ||= {}

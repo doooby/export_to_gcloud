@@ -3,9 +3,7 @@ module ExportToGcloud
 
   class Exporter
 
-    attr_accessor :context
-
-    def initialize definition, context=nil
+    def initialize definition, context
       @definition = definition
       @context = context
 
@@ -16,19 +14,12 @@ module ExportToGcloud
       end
     end
 
-    def with_context context
-      former_context = self.context
-      self.context = context
-      yield self
-      self.context = former_context
-    end
-
     def local_file_path label
-      context.dump_path.join "#{@definition.name}_#{label}.csv"
+      @context.dump_path.join "#{@definition.name}_#{label}.csv"
     end
 
     def storage_file_path label
-      prefix = @definition.storage_prefix || context.storage_prefix
+      prefix = @definition.storage_prefix || @context.storage_prefix
       "#{prefix}#{@definition.name}_#{label}.csv"
     end
 
@@ -58,7 +49,7 @@ module ExportToGcloud
 
     def upload_file!(file, storage_name)
       file = compress_file! file
-      gcloud_file = context.bucket.create_file file, storage_name, chunk_size: 2**21 # 2MB
+      gcloud_file = @context.bucket.create_file file, storage_name, chunk_size: 2**21 # 2MB
       file.delete
       gcloud_file
     end
@@ -66,20 +57,20 @@ module ExportToGcloud
     def get_storage_files
       @parts.map do |label, *_|
         storage_name = storage_file_path label
-        context.bucket.file storage_name
+        @context.bucket.file storage_name
       end.compact
     end
 
     def bq_table
       unless defined? @bq_table
-        @bq_table = context.dataset.table @definition.get_bq_table_name
+        @bq_table = @context.dataset.table @definition.get_bq_table_name
       end
       @bq_table
     end
 
     def recreate_bq_table!
       bq_table.delete if bq_table
-      @bq_table = context.dataset.create_table @definition.get_bq_table_name, &@definition.bq_schema
+      @bq_table = @context.dataset.create_table @definition.get_bq_table_name, &@definition.bq_schema
     end
 
     def start_load_job gcloud_file, **_load_settings
