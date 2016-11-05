@@ -14,6 +14,7 @@ class ExportToGcloud::Exporter::Context
       value = opts[key]
       send "set_#{key}", value if value
     end
+    self
   end
 
   def set_dump_path path
@@ -39,6 +40,10 @@ class ExportToGcloud::Exporter::Context
       value = instance_variable_get "@#{key}"
       value || raise("Undefined value for #{key} in exporter options!")
     end
+  end
+
+  def copy
+    self.class.new client, OPTIONS.inject({}){|k, h| h[k] = instance_variable_get "@#{k}"; h}
   end
 
 end
