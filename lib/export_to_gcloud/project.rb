@@ -4,32 +4,12 @@ module ExportToGcloud
 
   class Project
 
-    attr_reader :client,
-        :bucket, :storage_prefix,
-        :dataset,
-        :local_tmp_path,
-        :definition_finder
+    attr_reader :client, :definition_finder
 
 
     def initialize project_name, config_file
       ::ExportToGcloud.require_dependencies
       @client = ::Gcloud.new project_name, config_file
-    end
-
-    def set_bucket name
-      @bucket = client.storage.bucket name
-    end
-
-    def set_storage_prefix prefix
-      @storage_prefix = prefix
-    end
-
-    def set_dataset name
-      @dataset = client.bigquery.dataset name
-    end
-
-    def set_local_tmp_path path
-      @local_tmp_path = Pathname.new path
     end
 
     def set_definition_finder finder
@@ -68,7 +48,7 @@ module ExportToGcloud
       end
 
       definition = @definitions[name]
-      definition.create_exporter self
+      definition.create_exporter
     end
     
     private

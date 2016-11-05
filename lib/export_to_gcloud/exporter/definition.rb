@@ -4,8 +4,8 @@ class ExportToGcloud::Exporter::Definition < OpenStruct
     super attrs.merge!(type: exporter_type)
   end
 
-  def create_exporter project
-    type.new self, project
+  def create_exporter
+    type.new self
   end
 
   def validate!

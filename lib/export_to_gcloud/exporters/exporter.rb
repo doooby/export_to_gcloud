@@ -3,18 +3,26 @@ module ExportToGcloud
 
   class Exporter
 
-    def initialize definition, project
+    attr_accessor :options
+
+    def initialize definition
       @definition = definition
-      @project = project
       @parts = []
     end
 
+    def with_options options
+      former_options = self.options
+      self.options = options
+      yield
+      self.options = former_options
+    end
+
     def local_file_path label
-      @project.local_tmp_path.join "#{@definition.name}_#{label}.csv"
+      options.dump_path.join "#{@definition.name}_#{label}.csv"
     end
 
     def storage_file_path label
-      prefix = @definition.storage_prefix || @project.storage_prefix
+      prefix = @definition.storage_prefix || options.storage_prefix
       "#{prefix}#{@definition.name}_#{label}.csv"
     end
 
@@ -44,7 +52,7 @@ module ExportToGcloud
 
     def upload_file!(file, storage_name)
       file = compress_file! file
-      gcloud_file = @project.bucket.create_file file, storage_name, chunk_size: 2**21 # 2MB
+      gcloud_file = options.bucket.create_file file, storage_name, chunk_size: 2**21 # 2MB
       file.delete
       gcloud_file
     end
@@ -52,20 +60,20 @@ module ExportToGcloud
     def get_storage_files
       @parts.map do |label, *_|
         storage_name = storage_file_path label
-        @project.bucket.file storage_name
+        options.bucket.file storage_name
       end.compact
     end
 
     def bq_table
       unless defined? @bq_table
-        @bq_table = @project.dataset.table @definition.get_bq_table_name
+        @bq_table = options.dataset.table @definition.get_bq_table_name
       end
       @bq_table
     end
 
     def recreate_bq_table!
       bq_table.delete if bq_table
-      @bq_table = @project.dataset.create_table @definition.get_bq_table_name, &@definition.bq_schema
+      @bq_table = options.dataset.create_table @definition.get_bq_table_name, &@definition.bq_schema
     end
 
     def start_load_job gcloud_file, **_load_settings
