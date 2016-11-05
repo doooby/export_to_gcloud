@@ -17,11 +17,19 @@ module ExportToGcloud
       end
       sql = "COPY (#{sql}) TO '#{file.to_path}' WITH (FORMAT CSV, DELIMITER ';', QUOTE '\"'#{force_quote});"
 
-      @definition.sql_executor sql
+
+      executor = @definition.get_sql_executor || self.class.default_executor
+      executor.call sql
     end
     
     def self.validate_definition! definition
-      definition.sql_executor || raise('`sql_executor` needs to be defined!')
+      definition.get_sql_executor || default_executor || raise('`sql_executor` needs to be defined!')
+    end
+
+    class << self
+
+      attr_accessor :default_executor
+
     end
 
   end

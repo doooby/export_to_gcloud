@@ -12,7 +12,7 @@ class ExportToGcloud::Exporter::Definition < OpenStruct
   end
 
   def get_data *args
-    Proc === data ? data[*args] : data
+    Proc === data ? data.call(*args) : data
   end
 
   def get_bq_table_name
