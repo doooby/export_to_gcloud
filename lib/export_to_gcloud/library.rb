@@ -1,15 +1,3 @@
-require 'gcloud'
-require 'gcloud/bigquery'
-
-# large files uploading
-require 'httpclient'
-Faraday.default_adapter = :httpclient
-
-# monkeypatch :/ some issue in google-api
-# see http://googlecloudplatform.github.io/gcloud-ruby/docs/master/Gcloud/Storage.html
-#     -> A note about large uploads
-require 'google/api_client'
-Faraday::Response.register_middleware gzip: Faraday::Response::Middleware
 
 module ExportToGcloud
 
@@ -56,6 +44,21 @@ module ExportToGcloud
     ::ExportToGcloud::Exporter::Context.new client, opts
   end
 
+end
+
+unless defined? ExportToGcloud::TEST_ENV
+  require 'gcloud'
+  require 'gcloud/bigquery'
+
+  # large files uploading
+  require 'httpclient'
+  Faraday.default_adapter = :httpclient
+
+  # monkeypatch :/ some issue in google-api
+  # see http://googlecloudplatform.github.io/gcloud-ruby/docs/master/Gcloud/Storage.html
+  #     -> A note about large uploads
+  require 'google/api_client'
+  Faraday::Response.register_middleware gzip: Faraday::Response::Middleware
 end
 
 require 'pathname'

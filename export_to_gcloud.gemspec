@@ -18,4 +18,6 @@ Gem::Specification.new do |s|
 
   s.add_dependency 'gcloud', '~> 0.5.0'
   s.add_dependency 'httpclient', '~> 2.8'
+
+  s.add_development_dependency 'rspec', '~> 3.5'
 end
