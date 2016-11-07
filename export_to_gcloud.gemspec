@@ -10,11 +10,12 @@ Gem::Specification.new do |s|
 
   s.authors     = ['Ondřej Želazko']
   s.email       = 'zelazk.o@email.cz'
+  s.homepage    = 'https://github.com/doooby/export_to_gcloud'
 
   s.files       = Dir[ *%w[LICENSE lib/**/*.rb] ]
 
-  # s.license       = 'MIT'
+  s.license     = 'MIT'
 
-  s.add_dependency 'gcloud'
-  s.add_dependency 'httpclient'
+  s.add_dependency 'gcloud', '~> 0.5.0'
+  s.add_dependency 'httpclient', '~> 2.8'
 end
