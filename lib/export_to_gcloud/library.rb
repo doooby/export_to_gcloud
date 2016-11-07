@@ -1,8 +1,5 @@
 require 'gcloud'
 require 'gcloud/bigquery'
-require 'pathname'
-require 'ostruct'
-require 'csv'
 
 # large files uploading
 require 'httpclient'
@@ -60,6 +57,10 @@ module ExportToGcloud
   end
 
 end
+
+require 'pathname'
+require 'ostruct'
+require 'csv'
 
 require_relative 'exporters/exporter'
 require_relative 'exporters/csv_exporter'

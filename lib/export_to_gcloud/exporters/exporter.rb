@@ -15,12 +15,12 @@ module ExportToGcloud
     end
 
     def local_file_path label
-      @context.dump_path.join "#{@definition.name}_#{label}.csv"
+      @context.dump_path.join "#{@definition.name}#{prepend_underscore label}.csv"
     end
 
     def storage_file_path label
       prefix = @definition.storage_prefix || @context.storage_prefix
-      "#{prefix}#{@definition.name}_#{label}.csv"
+      "#{prefix}#{@definition.name}#{prepend_underscore label}.csv"
     end
 
     def add_data_part *args, label:nil
@@ -30,17 +30,18 @@ module ExportToGcloud
 
     def process_all_parts! recreate_table=true
       add_data_part label: 'all' if @parts.empty?
-
       recreate_bq_table! if recreate_table
 
-      @parts.map do |label, *part_args|
-        file = local_file_path label
-        storage_name = storage_file_path label
+      @parts.map{|*args| process_part! *args}
+    end
 
-        create_data_file! file, *part_args
-        gcloud_file = upload_file! file, storage_name
-        start_load_job gcloud_file
-      end
+    def process_part! label, *part_args
+      file = local_file_path label
+      create_data_file! file, *part_args
+
+      storage_name = storage_file_path label
+      gcloud_file = upload_file! file, storage_name
+      start_load_job gcloud_file
     end
 
     def create_data_file! file, *part_data
@@ -56,8 +57,7 @@ module ExportToGcloud
 
     def get_storage_files
       @parts.map do |label, *_|
-        storage_name = storage_file_path label
-        @context.bucket.file storage_name
+        @context.bucket.file storage_file_path(label)
       end.compact
     end
 
@@ -98,6 +98,10 @@ module ExportToGcloud
       raise "Compression of #{original_file.to_path} failed: #{err}" unless compressed_file.exist?
       original_file.delete if original_file.exist?
       compressed_file
+    end
+
+    def prepend_underscore text
+      "_#{text}" if String === text && !text.empty?
     end
 
   end
