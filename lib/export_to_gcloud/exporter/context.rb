@@ -26,12 +26,12 @@ class ExportToGcloud::Exporter::Context
   end
 
   def set_bucket bucket
-    bucket = client.storage.bucket bucket if String === bucket
+    bucket = get_bucket bucket if String === bucket
     @bucket = bucket
   end
 
   def set_dataset dataset
-    dataset = client.bigquery.dataset dataset if String === dataset
+    dataset = get_dataset dataset if String === dataset
     @dataset = dataset
   end
 
@@ -44,6 +44,16 @@ class ExportToGcloud::Exporter::Context
 
   def copy
     self.class.new client, OPTIONS.inject({}){|h, k| h[k] = instance_variable_get "@#{k}"; h}
+  end
+
+  private
+
+  def get_bucket bucket
+    client.storage.bucket bucket
+  end
+
+  def get_dataset dataset
+    client.bigquery.dataset dataset
   end
 
 end

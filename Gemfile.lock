@@ -10,6 +10,7 @@ GEM
       adamantium (~> 0.2)
       equalizer (~> 0.0.11)
     ast (2.3.0)
+    autotest-standalone (4.5.11)
     concord (0.1.5)
       adamantium (~> 0.2.0)
       equalizer (~> 0.0.9)
@@ -56,6 +57,8 @@ GEM
       rspec-core (~> 3.5.0)
       rspec-expectations (~> 3.5.0)
       rspec-mocks (~> 3.5.0)
+    rspec-autotest (1.0.0)
+      rspec-core (>= 2.99.0.beta1, < 4.0.0)
     rspec-core (3.5.4)
       rspec-support (~> 3.5.0)
     rspec-expectations (3.5.0)
@@ -79,9 +82,11 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  autotest-standalone
   mutant-rspec
   rake
   rspec
+  rspec-autotest
 
 BUNDLED WITH
    1.12.5

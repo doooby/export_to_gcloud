@@ -5,3 +5,5 @@ source "https://rubygems.org"
 gem 'rake'
 gem 'rspec'
 gem 'mutant-rspec'
+gem 'rspec-autotest'
+gem 'autotest-standalone'
