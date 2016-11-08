@@ -5,9 +5,10 @@ RSpec.describe ETG::Exporter::Context do
     ETG::Exporter::Context.new ETG::FakeGcloudClient.new, **attrs
   end
 
-  # describe '#set' do
-  #
-  # end
+  describe '#set' do
+    it '' do
+    end
+  end
 
   describe '#set_dump_path' do
     it 'sets dump_path as String' do

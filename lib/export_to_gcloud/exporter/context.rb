@@ -3,6 +3,7 @@ class ExportToGcloud::Exporter::Context
   attr_reader :client
 
   OPTIONS = %i[dump_path storage_prefix bucket dataset].freeze
+  attr_reader *OPTIONS
 
   def initialize client, **opts
     @client = client
@@ -35,15 +36,8 @@ class ExportToGcloud::Exporter::Context
     @dataset = dataset
   end
 
-  OPTIONS.each do |key|
-    define_method key do
-      value = instance_variable_get "@#{key}"
-      value || raise("Undefined value for #{key} in exporter options!")
-    end
-  end
-
   def copy
-    self.class.new client, OPTIONS.inject({}){|h, k| h[k] = instance_variable_get "@#{k}"; h}
+    self.class.new client, OPTIONS.inject({}){|h, k| h[k] = send k; h}
   end
 
   private

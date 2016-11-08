@@ -19,10 +19,6 @@ RSpec.describe ETG::Exporter::Definition do
     create_definition exporter_type, **attrs
   end
 
-  # describe '#set' do
-  #
-  # end
-
   describe '#validate!' do
     it 'invalid name' do
       definition = valid_definition name: nil
@@ -66,7 +62,7 @@ RSpec.describe ETG::Exporter::Definition do
 
     it 'Proc data with args' do
       definition = create_definition data: -> (arg1, arg2) { "#{arg1}_#{arg2}" }
-      expect(definition.get_data 'kkk', 5).to eq('kkk_5')
+      expect(definition.get_data 'kkk', 666).to eq('kkk_666')
     end
   end
 
@@ -77,8 +73,8 @@ RSpec.describe ETG::Exporter::Definition do
     end
 
     it 'explicit name' do
-      definition = create_definition name: 'kkk', bq_table_name: 'black power'
-      expect(definition.get_bq_table_name).to eq('black power')
+      definition = create_definition name: 'kkk', bq_table_name: 'black_power'
+      expect(definition.get_bq_table_name).to eq('black_power')
     end
   end
 
