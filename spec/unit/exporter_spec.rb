@@ -13,6 +13,19 @@ RSpec.describe ETG::Exporter do
     ETG::Exporter::Context.new ETG::FakeGcloudClient.new, **opts
   end
 
+  def load_opts **custom
+    opts = {
+        format: 'csv',
+        quote: '"',
+        delimiter: ';',
+        create: 'never',
+        write: 'append',
+        max_bad_records: 0
+    }
+    opts = custom.merge opts unless custom.empty?
+    opts
+  end
+
   describe '.new' do
     it 'with no parts' do
       exporter = ETG::Exporter.new definition, context
@@ -82,42 +95,137 @@ RSpec.describe ETG::Exporter do
   end
 
   describe '#process_all_parts!' do
-    it '' do
+    it 'no parts defined without recreation' do
+      exporter = ETG::Exporter.new definition, context
+      expect(exporter).not_to receive(:recreate_bq_table!)
+      expect(exporter).to receive(:process_part!).with(['all'])
+      exporter.process_all_parts! false
+    end
+
+    it 'defined parts without recreation' do
+      exporter = ETG::Exporter.new definition, context
+      exporter.instance_variable_set '@parts', [['1', 'kkk'], ['2', 666]]
+      expect(exporter).not_to receive(:recreate_bq_table!)
+      expect(exporter).to receive(:process_part!).once.with(['1', 'kkk'])
+      expect(exporter).to receive(:process_part!).once.with(['2', 666])
+      exporter.process_all_parts! false
+    end
+
+    it 'single defined part & recreation' do
+      exporter = ETG::Exporter.new definition, context
+      exporter.instance_variable_set '@parts', [['1', 'kkk']]
+      expect(exporter).to receive(:recreate_bq_table!)
+      expect(exporter).to receive(:process_part!).once.with(['1', 'kkk'])
+      exporter.process_all_parts! true
     end
   end
 
   describe '#process_part!' do
-    it '' do
+    it 'without any args' do
+      exporter = ETG::Exporter.new definition, context
+      expect(exporter).to receive(:local_file_path).with('1').and_return('/1.csv')
+      expect(exporter).to receive(:create_data_file!).with('/1.csv')
+      expect(exporter).to receive(:storage_file_path).with('1').and_return('1.csv')
+      expect(exporter).to receive(:upload_file!).with('/1.csv', '1.csv').and_return('gfile')
+      expect(exporter).to receive(:start_load_job).with('gfile').and_return('job')
+      expect(exporter.process_part! '1').to eq('job')
+    end
+
+    it 'with two args' do
+      exporter = ETG::Exporter.new definition, context
+      expect(exporter).to receive(:local_file_path).with('1').and_return('/1.csv')
+      expect(exporter).to receive(:create_data_file!).with('/1.csv', 'kkk', 666)
+      expect(exporter).to receive(:storage_file_path).with('1').and_return('1.csv')
+      expect(exporter).to receive(:upload_file!).with('/1.csv', '1.csv').and_return('gfile')
+      expect(exporter).to receive(:start_load_job).with('gfile').and_return('job')
+      expect(exporter.process_part! '1', 'kkk', 666).to eq('job')
     end
   end
 
   describe '#upload_file!' do
-    it '' do
+    it 'upload' do
+      exporter = ETG::Exporter.new definition, context(bucket: 'b')
+      file = ETG.define_fake_object.new
+      expect(exporter).to receive(:compress_file!).with('file').and_return(file)
+      expect(file).to receive(:delete).once
+      result = exporter.upload_file! 'file', 'gfile'
+      expect(result).to be_a(Hash)
+      expect(result[:method]).to eq(:create_file)
+      expect(result[:args]).to eq([file, 'gfile', {chunk_size: 2**21}])
     end
   end
 
   describe '#get_storage_files' do
-    it '' do
+    it 'no parts defined' do
+      exporter = ETG::Exporter.new definition, context
+      expect(exporter.get_storage_files).to eq([])
+    end
+
+    it 'single existing part - file call not mocked' do
+      exporter = ETG::Exporter.new definition(parts: [%w[all]]), context(bucket: 'b')
+      expect(exporter).to receive(:storage_file_path).with('all').and_return('all.csv')
+      bucket = exporter.instance_variable_get(:@context).bucket
+      expect(exporter.get_storage_files).to eq([{object: bucket, method: :file, args: ['all.csv']}])
+    end
+
+    it 'two parts, on not uploaded' do
+      exporter = ETG::Exporter.new definition(parts: [%w[1], %w[2]]), context(bucket: 'b')
+      expect(exporter).to receive(:storage_file_path).once.with('1').and_return('1.csv')
+      expect(exporter).to receive(:storage_file_path).once.with('2').and_return('2.csv')
+      bucket = exporter.instance_variable_get(:@context).bucket
+      expect(bucket).to receive(:file).once.with('1.csv').and_return(nil)
+      expect(bucket).to receive(:file).once.with('2.csv').and_return('gfile_2.csv')
+      expect(exporter.get_storage_files).to eq(['gfile_2.csv'])
     end
   end
 
   describe '#bq_table' do
-    it '' do
+    it 'already defined' do
+      _definition = definition
+      exporter = ETG::Exporter.new _definition, context
+      exporter.instance_variable_set :@bq_table, 'table'
+      expect(_definition).not_to receive(:get_bq_table_name)
+      expect(exporter.bq_table).to eq('table')
+    end
+
+    it 'not defined yet' do
+      _definition = definition
+      exporter = ETG::Exporter.new _definition, context(dataset: 'ds')
+      expect(_definition).to receive(:get_bq_table_name).and_return('kkk')
+      result = exporter.bq_table
+      expect(result).to be_a(Hash)
+      expect(result[:method]).to eq(:table)
+      expect(result[:args]).to eq(['kkk'])
     end
   end
 
   describe '#recreate_bq_table!' do
-    it '' do
+    it 'with delete' do
+      _definition = definition bq_table_name: 'kkk', bq_schema: ->(){}
+      _context = context dataset: 'ds'
+      exporter = ETG::Exporter.new _definition, _context
+
+      table = ETG.define_fake_object.new
+      exporter.instance_variable_set :@bq_table, table
+      expect(table).to receive(:delete)
+
+      dataset = _context.dataset
+      expect(dataset).to receive(:create_table).with('kkk'){|*_, &block|
+        expect(block).to eq(_definition.bq_schema)
+      }.and_return('new_table')
+
+      expect(exporter.recreate_bq_table!).to eq('new_table')
     end
   end
 
   describe '#start_load_job' do
-    it '' do
-    end
-  end
+    it 'defaults' do
+      exporter = ETG::Exporter.new definition, context
+      table = ETG.define_fake_object{def load(*_); end}.new
+      exporter.instance_variable_set :@bq_table, table
 
-  describe '.define' do
-    it '' do
+      expect(table).to receive(:load).with('gfile', load_opts).and_return('load_job')
+      expect(exporter.start_load_job 'gfile').to eq('load_job')
     end
   end
 

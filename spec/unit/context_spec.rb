@@ -48,13 +48,13 @@ RSpec.describe ETG::Exporter::Context do
   describe '#set_dataset' do
     it 'sets dataset from string' do
       context = create_context dataset: 'export'
-      expect(context.dataset.class).to eq(ETG::FakeGcloudClient::Storage::Dataset)
+      expect(context.dataset.class).to eq(ETG::FakeGcloudClient::BigQuery::Dataset)
       expect(context.dataset.key).to eq('export')
     end
 
     it 'sets dataset as object' do
-      context = create_context dataset: ETG::FakeGcloudClient::Storage::Dataset.new('export')
-      expect(context.dataset.class).to eq(ETG::FakeGcloudClient::Storage::Dataset)
+      context = create_context dataset: ETG::FakeGcloudClient::BigQuery::Dataset.new('export')
+      expect(context.dataset.class).to eq(ETG::FakeGcloudClient::BigQuery::Dataset)
       expect(context.dataset.key).to eq('export')
     end
   end

@@ -3,6 +3,8 @@ module ExportToGcloud
 
   class CSVExporter < Exporter
 
+    private
+
     def create_data_file! file, *part_data
       data = @definition.get_data(*part_data)
 

@@ -44,9 +44,7 @@ module ExportToGcloud
       start_load_job gcloud_file
     end
 
-    def create_data_file! file, *part_data
-      File.write file.to_path, @definition.get_data(*part_data)
-    end
+
 
     def upload_file!(file, storage_name)
       file = compress_file! file
@@ -91,6 +89,10 @@ module ExportToGcloud
     end
 
     private
+
+    def create_data_file! file, *part_data
+      File.write file.to_path, @definition.get_data(*part_data)
+    end
 
     def compress_file!(original_file)
       err = %x(pigz -f9 #{original_file.to_path} 2>&1)
