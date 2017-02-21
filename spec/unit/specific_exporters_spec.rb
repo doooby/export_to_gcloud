@@ -13,8 +13,7 @@ RSpec.describe ETG::Exporter do
   end
 
   describe '#create_data_file!' do
-    it '' do
-    end
+    it 'base'
   end
 
 end

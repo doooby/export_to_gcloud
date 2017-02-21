@@ -98,7 +98,7 @@ RSpec.describe ETG::Exporter do
     it 'no parts defined without recreation' do
       exporter = ETG::Exporter.new definition, context
       expect(exporter).not_to receive(:recreate_bq_table!)
-      expect(exporter).to receive(:process_part!).with(['all'])
+      expect(exporter).to receive(:process_part!).with('all')
       exporter.process_all_parts! false
     end
 
@@ -106,8 +106,8 @@ RSpec.describe ETG::Exporter do
       exporter = ETG::Exporter.new definition, context
       exporter.instance_variable_set '@parts', [['1', 'kkk'], ['2', 666]]
       expect(exporter).not_to receive(:recreate_bq_table!)
-      expect(exporter).to receive(:process_part!).once.with(['1', 'kkk'])
-      expect(exporter).to receive(:process_part!).once.with(['2', 666])
+      expect(exporter).to receive(:process_part!).once.with('1', 'kkk')
+      expect(exporter).to receive(:process_part!).once.with('2', 666)
       exporter.process_all_parts! false
     end
 
@@ -115,7 +115,7 @@ RSpec.describe ETG::Exporter do
       exporter = ETG::Exporter.new definition, context
       exporter.instance_variable_set '@parts', [['1', 'kkk']]
       expect(exporter).to receive(:recreate_bq_table!)
-      expect(exporter).to receive(:process_part!).once.with(['1', 'kkk'])
+      expect(exporter).to receive(:process_part!).once.with('1', 'kkk')
       exporter.process_all_parts! true
     end
   end

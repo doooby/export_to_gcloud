@@ -32,7 +32,7 @@ module ExportToGcloud
       add_data_part label: 'all' if @parts.empty?
       recreate_bq_table! if recreate_table
 
-      @parts.map{|*args| process_part! *args}
+      @parts.map{|args| process_part! *args}
     end
 
     def process_part! label, *part_args

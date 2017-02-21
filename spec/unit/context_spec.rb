@@ -6,8 +6,7 @@ RSpec.describe ETG::Exporter::Context do
   end
 
   describe '#set' do
-    it '' do
-    end
+    it 'base'
   end
 
   describe '#set_dump_path' do
